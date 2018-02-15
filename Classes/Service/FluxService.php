@@ -346,26 +346,39 @@ class FluxService implements SingletonInterface {
 		return (array) ObjectAccess::getPropertyPath($typoScript, $path);
 	}
 
-	/**
-	 * Returns the complete, global TypoScript array
-	 * defined in TYPO3.
-	 *
-	 * @return array
-	 */
-	public function getAllTypoScript() {
-		if (!$this->configurationManager instanceof BackendConfigurationManager) {
-			$typoScript = (array) $this->configurationManager->getConfiguration(ConfigurationManagerInterface::CONFIGURATION_TYPE_FULL_TYPOSCRIPT);
-			$typoScript = GeneralUtility::removeDotsFromTS($typoScript);
-			return $typoScript;
-		} else {
-			$pageId = $this->configurationManager->getCurrentPageId();
-			if (FALSE === isset(self::$typoScript[$pageId])) {
-				self::$typoScript[$pageId] = (array) $this->configurationManager->getConfiguration(ConfigurationManagerInterface::CONFIGURATION_TYPE_FULL_TYPOSCRIPT);
-				self::$typoScript[$pageId] = GeneralUtility::removeDotsFromTS(self::$typoScript[$pageId]);
-			}
-			return (array) self::$typoScript[$pageId];
-		}
-	}
+    /**
+     * Returns the complete, global TypoScript array
+     * defined in TYPO3.
+     *
+     * @return array
+     */
+    public function getAllTypoScript()
+    {
+        static $cache = [];
+        $pageId = $this->getCurrentPageId();
+        if (isset($cache[$pageId])) {
+            return $cache[$pageId];
+        }
+        if (false === isset($cache[$pageId])) {
+            $cache[$pageId] = (array) $this->configurationManager->getConfiguration(
+                ConfigurationManagerInterface::CONFIGURATION_TYPE_FULL_TYPOSCRIPT
+            );
+            $cache[$pageId] = GeneralUtility::removeDotsFromTS($cache[$pageId]);
+        }
+        return (array) $cache[$pageId];
+    }
+
+    /**
+     * @return integer
+     */
+    protected function getCurrentPageId()
+    {
+        if ($this->configurationManager instanceof BackendConfigurationManager) {
+            return (integer) $this->configurationManager->getCurrentPageId();
+        } else {
+            return (integer) $GLOBALS['TSFE']->id;
+        }
+    }
 
 	/**
 	 * ResolveUtility the top-priority ConfigurationPrivider which can provide
